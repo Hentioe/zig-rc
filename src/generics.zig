@@ -2,15 +2,15 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const helper = @import("helper.zig");
 
-pub fn Arc(comptime T: type) type {
+pub fn AtomicShared(comptime T: type) type {
     helper.requireCloneable(T);
 
     return struct {
-        pub const __super__ = .arc; // 写入一个固定标记，让外部在编译期可以判断它是 Arc
+        pub const __super__ = .atomic_shared; // 写入一个固定标记，让外部在编译期可以判断它是 AtomicShared
         const Self = @This();
 
         const Storage = union(enum) {
-            /// from 创建：值嵌在控制块里，由 Arc 拥有。
+            /// from 创建：值嵌在控制块里，由 AtomicShared 拥有。
             owned: T,
             /// fromOwned 创建：只是外部数据的指针。
             borrowed: *T,
@@ -21,9 +21,9 @@ pub fn Arc(comptime T: type) type {
             storage: Storage,
         };
 
-        inner: *Inner, // Arc 没有自己的状态，所有副本都将指向一个 inner 实例。复制结构体是安全的。
+        inner: *Inner, // AtomicShared 没有自己的状态，所有副本都将指向一个 inner 实例。复制结构体是安全的。
 
-        /// 深克隆 `src`，Arc 拥有数据拷贝。初始计数为 `1`。
+        /// 深克隆 `src`，AtomicShared 拥有数据拷贝。初始计数为 `1`。
         pub fn new(allocator: Allocator, src: *const T) Allocator.Error!Self {
             const inner = try allocator.create(Inner);
             errdefer allocator.destroy(inner);
@@ -65,7 +65,7 @@ pub fn Arc(comptime T: type) type {
             allocator.destroy(inner);
         }
 
-        /// 只读访问（共享所有权下默认不可变，和 Rust 的 Arc 一致）。
+        /// 只读访问（共享所有权下默认不可变，和 Rust 的 AtomicShared 一致）。
         pub fn get(self: Self) *const T {
             return switch (self.inner.storage) {
                 .owned => |*value| value,
@@ -104,10 +104,10 @@ const Person = struct {
     }
 };
 
-const ArcPerson = Arc(Person);
+const ArcPerson = AtomicShared(Person);
 
 test "__super__ is generated" {
-    try testing.expect(ArcPerson.__super__ == .arc);
+    try testing.expect(ArcPerson.__super__ == .atomic_shared);
 }
 
 test "new deep-clones the value and outlives the source" {
@@ -222,7 +222,7 @@ test "plain-data type with trivial clone and release" {
 
     const a = testing.allocator;
     const point: Point = .{ .x = 3, .y = 4 };
-    const rc = try Arc(Point).new(a, &point);
+    const rc = try AtomicShared(Point).new(a, &point);
     defer rc.release(a);
 
     try testing.expectEqual(@as(i32, 4), rc.get().y);

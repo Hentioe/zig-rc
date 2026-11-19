@@ -49,32 +49,32 @@ const Student = struct {
 pub fn main(init: std.process.Init) !void {
     const a = init.gpa;
 
-    // -- Arc 的基本用法 --
-    const ArcPerson = rc.Arc(Person);
-    // 用 new 创建 Arc 实例
+    // -- AtomicShared 的基本用法 --
+    const AtomicSharedPerson = rc.AtomicShared(Person);
+    // 用 new 创建 AtomicShared 实例
     var src1 = try Person.init(a, "Alice");
-    defer src1.deinit(a); // new 会在 Arc 内部深拷贝一份，所以原始数据仍要释放
-    var shared_p1 = try ArcPerson.new(a, &src1);
+    defer src1.deinit(a); // new 会在 AtomicShared 内部深拷贝一份，所以原始数据仍要释放
+    var shared_p1 = try AtomicSharedPerson.new(a, &src1);
     defer shared_p1.release(a);
     shared_p1.retain(); // 引用 +1
     defer shared_p1.release(a); // 再次释放，最终计数回到 0
 
-    // 用 fromOwned 创建 Arc 实例
+    // 用 fromOwned 创建 AtomicShared 实例
     var src2 = try Person.init(a, "Bob");
     // defer src2.deinit(a); // fromOwned 接管了释放责任，不需要再手动释放
-    var shared_p2 = try ArcPerson.fromOwned(a, &src2);
+    var shared_p2 = try AtomicSharedPerson.fromOwned(a, &src2);
     defer shared_p2.release(a);
 
-    // -- AnyArc 的基本用法 --
+    // -- AnyAtomicShared 的基本用法 --
     var src3 = try Person.init(a, "Charlie");
     defer src3.deinit(a);
     var src4 = try Student.init(a, "Dave");
     defer src4.deinit(a);
-    const shared_p3 = try rc.AnyArc.new(a, &src3);
-    const shared_s1 = try rc.AnyArc.new(a, &src4);
+    const shared_p3 = try rc.AnyAtomicShared.new(a, &src3);
+    const shared_s1 = try rc.AnyAtomicShared.new(a, &src4);
     // 放到一个容器中
-    const list: [2]rc.AnyArc = .{ shared_p3, shared_s1 };
+    const list: [2]rc.AnyAtomicShared = .{ shared_p3, shared_s1 };
     for (list) |item| {
-        item.release(a); // 即使 item 的原始数据类型不同，但 AnyArc 容器提供了统一的原语和类型兼容
+        item.release(a); // 即使 item 的原始数据类型不同，但 AnyAtomicShared 容器提供了统一的原语和类型兼容
     }
 }
