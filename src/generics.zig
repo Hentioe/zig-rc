@@ -6,6 +6,7 @@ pub fn Arc(comptime T: type) type {
     helper.requireCloneable(T);
 
     return struct {
+        pub const __super__ = .arc; // 写入一个固定标记，让外部在编译期可以判断它是 Arc
         const Self = @This();
 
         const Storage = union(enum) {
@@ -104,6 +105,10 @@ const Person = struct {
 };
 
 const ArcPerson = Arc(Person);
+
+test "__super__ is generated" {
+    try testing.expect(ArcPerson.__super__ == .arc);
+}
 
 test "new deep-clones the value and outlives the source" {
     const a = testing.allocator;
