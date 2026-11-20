@@ -65,8 +65,16 @@ pub fn AtomicShared(comptime T: type) type {
             allocator.destroy(inner);
         }
 
-        /// 只读访问（共享所有权下默认不可变，和 Rust 的 AtomicShared 一致）。
+        /// 只读访问。
         pub fn get(self: Self) *const T {
+            return switch (self.inner.storage) {
+                .owned => |*value| value,
+                .borrowed => |ptr| ptr,
+            };
+        }
+
+        /// 可变访问。
+        pub fn getMut(self: Self) *T {
             return switch (self.inner.storage) {
                 .owned => |*value| value,
                 .borrowed => |ptr| ptr,
